@@ -2,11 +2,11 @@
 
 ![Info](./images/1.png)
 
-**Platform**: Vulnhub
-**Difficulty Level**: Easy
-**IP Address/Target UR**L: 192.168.29.17
-**Date**: September 3, 2024
-**Objective**: The goal is to acquire root access on the Kioptrix machine using basic tools and techniques for vulnerability assessment and exploitation.
+- **Platform**: Vulnhub
+- **Difficulty Level**: Easy
+- **IP Address/Target UR**L: 192.168.29.17
+- **Date**: September 3, 2024
+- **Objective**: The goal is to acquire root access on the Kioptrix machine using basic tools and techniques for vulnerability assessment and exploitation.
 
 ## Enumeration
 ### Initial Reconnaissance
